@@ -5,7 +5,7 @@ use std::{
     collections::HashMap, // used for storing command line arguments
     env,
 };
-use rand_chacha::ChaChaRng; // used for generating random numbers
+use rand_chacha::{ChaChaRng, ChaCha20Rng}; // used for generating random numbers
 use libsecp256k1::{PublicKey, SecretKey}; // used for generating secret and public keys
 use sha3::{Digest, Keccak256}; // used for generating hashes using the Keccak-256 algorithm
 use log; // used for logging messages
@@ -40,11 +40,11 @@ fn main() {
 
     // Wait for wallets to be received on the channel and log them, then stop when reaching the limit
     for _ in 0..params.get("n").unwrap().parse::<u32>().unwrap() {
-        let wallet: HashMap<String, String> = rx.recv().unwrap();
+        let wallet: (String, String) = rx.recv().unwrap();
         log::warn!(
             "----------- new address found -----------\nAddress:     0x{}\nPrivate key: 0x{}\n\n",
-            wallet.get("address").unwrap(),
-            wallet.get("private_key").unwrap()
+            wallet.0,
+            wallet.1
         );
     }
 
@@ -121,8 +121,7 @@ fn check_args(args: HashMap<String, String>) -> HashMap<String, String> {
 }
 
 //generate a random local wallet
-fn generate_wallet() -> HashMap<String, String> {    
-    let mut rng = ChaChaRng::from_entropy();
+fn generate_wallet(rng: &mut ChaCha20Rng) -> (String, String)  {    
     let mut bytes = [0u8; 32];
     rng.fill_bytes(&mut bytes);
     // Generate a secret key
@@ -132,20 +131,17 @@ fn generate_wallet() -> HashMap<String, String> {
     // Hash the public key to get the Ethereum address
     let public_key_hash = Keccak256::digest(&public_key.serialize()[1..]);
     let address = hex::encode(&public_key_hash[12..]);
-
-    let mut wallet: HashMap<String, String> = HashMap::new();
-    wallet.insert("address".to_string(), address.to_string());
-    wallet.insert("private_key".to_string(), hex::encode(&secret_key.serialize()).to_string());
-    wallet
+    (address.to_string(), hex::encode(&secret_key.serialize()).to_string())
 }
 
 
 //thread function to generate wallets, check if they comply with params and send it back through channel
-fn thread_function(params: HashMap<String, String>, tx: Sender<HashMap<String, String>>) {
+fn thread_function(params: HashMap<String, String>, tx: Sender<(String, String)>) {
+    let mut rng = ChaChaRng::from_entropy();
     loop {
-        let wallet = generate_wallet();
-        let address = wallet.get("address").unwrap();
-        if !check_address(address, params.clone()) {
+        let wallet = generate_wallet(&mut rng);
+        let address = &wallet.0;
+        if !check_address(address, &params) {
             continue;
         }
         tx.send(wallet).unwrap();
@@ -153,7 +149,7 @@ fn thread_function(params: HashMap<String, String>, tx: Sender<HashMap<String, S
 }
 
 //check if address complies with params
-fn check_address(address: &str, params: HashMap<String, String>) -> bool {
+fn check_address(address: &String, params: &HashMap<String, String>) -> bool {
     if params.contains_key("p") {
         if !address.starts_with(params.get("p").unwrap()) {
             return false;
