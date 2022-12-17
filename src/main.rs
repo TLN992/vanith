@@ -4,6 +4,7 @@ use std::{
     thread::spawn, // used for spawning threads
     collections::HashMap, // used for storing command line arguments
     env,
+    sync::{Arc, Mutex},
 };
 use rand_chacha::{ChaChaRng, ChaCha20Rng}; // used for generating random numbers
 use libsecp256k1::{PublicKey, SecretKey}; // used for generating secret and public keys
@@ -17,6 +18,8 @@ use rand_chacha::rand_core::RngCore;
 
 
 fn main() {
+    // Create a flag in shared memory to signal to the threads that they should terminate
+    let stop_flag = Arc::new(Mutex::new(false));
     // Set up logging to both a file and the terminal
     CombinedLogger::init(vec![
         WriteLogger::new(LevelFilter::Warn, Config::default(), File::create(get_date_hour()).unwrap()),
@@ -35,8 +38,11 @@ fn main() {
     for _ in 0..params.get("t").unwrap().parse::<u32>().unwrap() {
         let tx_ = tx.clone();
         let params_ = params.clone();
-        let _ = spawn(move || thread_function(params_, tx_));
+        let stop_flag_ = stop_flag.clone();
+        let _ = spawn(move || thread_function(params_, tx_, stop_flag_));
     }
+
+    log::warn!("Generating {} wallets with {} threads\n\n", params.get("n").unwrap(), params.get("t").unwrap());
 
     // Wait for wallets to be received on the channel and log them, then stop when reaching the limit
     for _ in 0..params.get("n").unwrap().parse::<u32>().unwrap() {
@@ -48,8 +54,11 @@ fn main() {
         );
     }
 
+    //stop the threads
+    *stop_flag.lock().unwrap() = true;
+
     // Print the total number of wallets generated and the elapsed time
-    println!(
+    log::warn!(
         "{} wallets generated in {:?}",
         params.get("n").unwrap(),
         start.elapsed()
@@ -101,20 +110,50 @@ fn check_args(args: HashMap<String, String>) -> HashMap<String, String> {
     }
     //if args contains "p" or "prefix" then add it to params
     if args.contains_key("p") {
+        //check if the argument is a valid hex string
+        if !is_hex(args.get("p").unwrap()) {
+            println!("Invalid prefix: {}\nshould be only hex characters", args.get("p").unwrap());
+            std::process::exit(1);
+        }
         params.insert("p".to_string(), args.get("p").unwrap().to_string());
     } else if args.contains_key("prefix") {
+        //check if the argument is a valid hex string
+        if !is_hex(args.get("prefix").unwrap()) {
+            println!("Invalid prefix: {}\nshould be only hex characters", args.get("prefix").unwrap());
+            std::process::exit(1);
+        }
         params.insert("p".to_string(), args.get("prefix").unwrap().to_string());
     }
     //if args contains "s" or "suffix" then add it to params
     if args.contains_key("s") {
+        //check if the argument is a valid hex string
+        if !is_hex(args.get("s").unwrap()) {
+            println!("Invalid suffix: {}\nshould be only hex characters", args.get("s").unwrap());
+            std::process::exit(1);
+        }
         params.insert("s".to_string(), args.get("s").unwrap().to_string());
     } else if args.contains_key("suffix") {
+        //check if the argument is a valid hex string
+        if !is_hex(args.get("suffix").unwrap()) {
+            println!("Invalid suffix: {}\nshould be only hex characters", args.get("suffix").unwrap());
+            std::process::exit(1);
+        }
         params.insert("s".to_string(), args.get("suffix").unwrap().to_string());
     }
     //if args contains "a" or "anywhere" then add it to params
     if args.contains_key("a") {
+        //check if the argument is a valid hex string
+        if !is_hex(args.get("a").unwrap()) {
+            println!("Invalid anywhere: {}\nshould be only hex characters", args.get("a").unwrap());
+            std::process::exit(1);
+        }
         params.insert("a".to_string(), args.get("a").unwrap().to_string());
     } else if args.contains_key("anywhere") {
+        //check if the argument is a valid hex string
+        if !is_hex(args.get("anywhere").unwrap()) {
+            println!("Invalid anywhere: {}\nshould be only hex characters", args.get("anywhere").unwrap());
+            std::process::exit(1);
+        }
         params.insert("a".to_string(), args.get("anywhere").unwrap().to_string());
     }
     params
@@ -136,13 +175,17 @@ fn generate_wallet(rng: &mut ChaCha20Rng) -> (String, String)  {
 
 
 //thread function to generate wallets, check if they comply with params and send it back through channel
-fn thread_function(params: HashMap<String, String>, tx: Sender<(String, String)>) {
+fn thread_function(params: HashMap<String, String>, tx: Sender<(String, String)>, flag: Arc<Mutex<bool>>) {
     let mut rng = ChaChaRng::from_entropy();
     loop {
         let wallet = generate_wallet(&mut rng);
         let address = &wallet.0;
         if !check_address(address, &params) {
             continue;
+        }
+        let flag_value = flag.lock().unwrap();
+        if *flag_value {
+            break;
         }
         tx.send(wallet).unwrap();
     }
@@ -166,4 +209,9 @@ fn check_address(address: &String, params: &HashMap<String, String>) -> bool {
         }
     }
     true
+}
+
+//check if strings only contains hexadecimal characters
+fn is_hex(s: &str) -> bool {
+    s.chars().all(|c| c.is_digit(16))
 }
