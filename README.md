@@ -14,8 +14,8 @@ threads=<num> or t=<num>: Number of threads to use for generating wallets (defau
 number=<num> or n=<num>: Number of wallets to generate (default: 1)
 
 prefix=<hex_string> or p=<hex_string>: Hex string to use as prefix for the wallet address.
-~~~shell
-suffix=<hex_string> or s=<hex_string>~~~: Hex string to use as suffix for the wallet address.
+
+suffix=<hex_string> or s=<hex_string>: Hex string to use as suffix for the wallet address.
 
 anywhere=<hex_string> or a=<hex_string>: Hex string to search for anywhere in the wallet address.
 
