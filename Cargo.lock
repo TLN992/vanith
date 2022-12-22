@@ -446,10 +446,37 @@ dependencies = [
 ]
 
 [[package]]
+name = "rand_isaac"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8df6b0b3dc9991a10b2d91a86d1129314502169a1bf6afa67328945e02498b76"
+dependencies = [
+ "rand_core",
+]
+
+[[package]]
 name = "scratch"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9c8132065adcfd6e02db789d9285a0deb2f3fcb04002865ab67d5fb103533898"
+
+[[package]]
+name = "secp256k1"
+version = "0.25.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "550fc3b723a478be77bf74718947cdcdd75144d508aaa70f0a320036905df2a8"
+dependencies = [
+ "secp256k1-sys",
+]
+
+[[package]]
+name = "secp256k1-sys"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8058e28ae464daf5ac14c5c0f78110b58616e796c4e4e28cfcca38fdb13d8f22"
+dependencies = [
+ "cc",
+]
 
 [[package]]
 name = "serde"
@@ -599,7 +626,9 @@ dependencies = [
  "hex",
  "libsecp256k1",
  "log",
- "rand_chacha",
+ "rand",
+ "rand_isaac",
+ "secp256k1",
  "sha3",
  "simplelog",
 ]

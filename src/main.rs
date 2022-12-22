@@ -24,17 +24,17 @@ fn main() {
     let (tx, rx) = channel();
 
     // Spawn multiple threads
-    for _ in 0..params.get("t").unwrap().parse::<u32>().unwrap() {
+    for _ in 0..params.t {
         let tx_ = tx.clone();
         let params_ = params.clone();
         let stop_flag_ = stop_flag.clone();
         let _ = spawn(move || wallet_generator::thread_function(params_, tx_, stop_flag_));
     }
 
-    log::warn!("Generating {} wallets with {} threads\n\n", params.get("n").unwrap(), params.get("t").unwrap());
+    log::warn!("Generating {} wallets with {} threads\n\n", params.n, params.t);
 
     // Wait for wallets to be received on the channel and log them, then stop when reaching the limit
-    for _ in 0..params.get("n").unwrap().parse::<u32>().unwrap() {
+    for _ in 0..params.n {
         let wallet: (String, String) = rx.recv().unwrap();
         logging::log_address(wallet);
     }
@@ -45,7 +45,7 @@ fn main() {
     // Print the total number of wallets generated and the elapsed time
     log::warn!(
         "{} wallets generated in {:?}",
-        params.get("n").unwrap(),
+        params.n,
         start.elapsed()
     );
 }
