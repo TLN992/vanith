@@ -10,9 +10,8 @@ pub struct Parameters {
     pub n: u32,
     pub p: Option<String>,
     pub s: Option<String>,
-    pub a: Option<String>,
-    pub c: Option<String>,
-    pub cn: Option<usize>,
+    pub cp: Option<String>,
+    pub cn: u32
 }
 
 // Check if the number of command line arguments is correct and if the arguments are valid
@@ -22,9 +21,8 @@ pub fn check_args(args: HashMap<String, String>) -> Parameters {
         n: 1,
         p: None,
         s: None,
-        a: None,
-        c: None,
-        cn: None,
+        cp: None,
+        cn: 256
     };
     // Check if args contains "t" or "threads"
     if !args.contains_key("t") && !args.contains_key("threads") {
@@ -80,31 +78,21 @@ pub fn check_args(args: HashMap<String, String>) -> Parameters {
         }
         params.s = Some(args.get("suffix").unwrap().to_string());
     }
-    //if args contains "a" or "anywhere" then add it to params
-    if args.contains_key("a") {
+
+
+    if args.contains_key("cp") {
         //check if the argument is a valid hex string
-        if !is_hex(args.get("a").unwrap()) {
-            println!("Invalid string: {}\nshould be only hex characters", args.get("a").unwrap());
+        if !is_hex(args.get("cp").unwrap()) {
+            println!("Invalid suffix: {}\nshould be only hex characters", args.get("cp").unwrap());
             std::process::exit(1);
         }
-        params.a = Some(args.get("a").unwrap().to_string());
-    } else if args.contains_key("suffix") {
+        params.cp = Some(args.get("cp").unwrap().to_string());
+    }
+    if args.contains_key("cn") {
         //check if the argument is a valid hex string
-        if !is_hex(args.get("anywhere").unwrap()) {
-            println!("Invalid string: {}\nshould be only hex characters", args.get("anywhere").unwrap());
-            std::process::exit(1);
-        }
-        params.a = Some(args.get("anywhere").unwrap().to_string());
+        params.cn = args.get("cn").unwrap().parse().unwrap();
     }
 
-    //if args contains ("c" or "character") and ("cn" or "charNum") then add it to params
-    if args.contains_key("c") && args.contains_key("cn") {
-        params.c = Some(args.get("c").unwrap().to_string());
-        params.cn = Some(args.get("cn").unwrap().parse().expect("Failed to parse character number"));
-    } else if args.contains_key("character") && args.contains_key("charNum") {
-        params.c = Some(args.get("character").unwrap().to_string());
-        params.cn = Some(args.get("charNum").unwrap().parse().expect("Failed to parse character number"));
-    }
 
     params
 }

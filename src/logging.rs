@@ -1,5 +1,4 @@
-use chrono; // used for getting the current date and time
-use log;
+use chrono; //
 use simplelog::{ // used for setting up logging to both a file and the terminal
     CombinedLogger, 
     TermLogger, 
@@ -12,14 +11,6 @@ use simplelog::{ // used for setting up logging to both a file and the terminal
 use std::{
     fs::File, // used for creating a log file
 };
-
-pub fn log_address(wallet: (String, String)) {
-    log::warn!(
-        "----------- new address found -----------\nAddress:     0x{}\nPrivate key: 0x{}\n\n",
-        wallet.0,
-        wallet.1
-    );
-}
 
 pub fn init() {
     // Set up logging to both a file and the terminal

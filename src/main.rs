@@ -22,23 +22,29 @@ fn main() {
 
     // Set up a channel for sending messages between threads
     let (tx, rx) = channel();
-
     // Spawn multiple threads
     for _ in 0..params.t {
         let tx_ = tx.clone();
-        let params_ = params.clone();
         let stop_flag_ = stop_flag.clone();
-        let _ = spawn(move || wallet_generator::thread_function(params_, tx_, stop_flag_));
+        let prms = params.clone();
+        let _ = spawn(move || wallet_generator::thread_function(prms, tx_, stop_flag_));
     }
 
     log::warn!("Generating {} wallets with {} threads\n\n", params.n, params.t);
 
-    // Wait for wallets to be received on the channel and log them, then stop when reaching the limit
-    for _ in 0..params.n {
-        let wallet: (String, String) = rx.recv().unwrap();
-        logging::log_address(wallet);
-    }
+    let mut valid = Vec::<ValidAddress>::new();
 
+    let max = usize::try_from(params.n).unwrap();
+
+    // Wait for wallets to be received on the channel and log them, then stop when reaching the limit
+    while valid.len() < max {
+        let wallet = rx.recv().unwrap();
+
+        log::warn!("Wallet found: {:#?}", wallet);
+
+        valid.push(wallet)
+        
+    }
     //stop the threads
     *stop_flag.lock().unwrap() = true;
 
@@ -50,3 +56,10 @@ fn main() {
     );
 }
 
+#[allow(dead_code)]
+#[derive(Debug)]
+pub struct ValidAddress {
+    address: String,
+    private_key: String,
+    possible_ct: Vec<(String, u32)>
+}
